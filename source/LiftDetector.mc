@@ -186,24 +186,48 @@ class LiftDetector {
         return true;
     }
 
-    //! Altitude gain >= threshold over 20 s, AND a monotonic climb, AND
-    //! (depending on the lift type) a quiet accelerometer.
+    //! A monotonic altitude gain with (depending on the lift type) a quiet
+    //! accelerometer.
+    //!
+    //! Two windows are accepted. The wide one is the robust signature from spec
+    //! §4.3: 10 m over 20 s at 80 % monotonic. The narrow one exists because
+    //! latency here is expensive: the wide window only clears about 20 s after
+    //! boarding, since it compares against an altitude that is still on the
+    //! descent, and every second until it clears is lift climb accumulating into
+    //! the activity's ascent total. The narrow window trades a smaller gain for
+    //! stricter monotonicity, which cuts that to well under half.
     private function _liftConditionsMet(accelVarianceMg as Float or Null,
                                         timeMs as Number) as Boolean {
-        var targetMs = timeMs - Config.LIFT_WINDOW_SEC * 1000;
-        var referenceIndex = _indexAtOrBefore(targetMs);
+        var smooth = _t.accelSmoothMg;
+        if (smooth != null && accelVarianceMg != null && accelVarianceMg >= smooth) {
+            return false;
+        }
+
+        return _climbConfirmed(Config.LIFT_WINDOW_SEC, _t.liftGainM,
+                               _t.liftMonotonicRatio, Config.LIFT_MIN_SAMPLES, timeMs)
+               || _climbConfirmed(Config.LIFT_FAST_WINDOW_SEC, _t.liftFastGainM,
+                                  _t.liftFastMonotonicRatio,
+                                  Config.LIFT_FAST_MIN_SAMPLES, timeMs);
+    }
+
+    //! True when the buffer shows at least `gainM` of climb over `windowSec`,
+    //! with at least `ratio` of the samples in that window rising.
+    private function _climbConfirmed(windowSec as Number, gainM as Float,
+                                     ratio as Float, minSamples as Number,
+                                     timeMs as Number) as Boolean {
+        var referenceIndex = _indexAtOrBefore(timeMs - windowSec * 1000);
         if (referenceIndex < 0) {
             return false;
         }
 
         var current = _smoothedAlt;
         var reference = _alt[_physical(referenceIndex)];
-        if (current == null || current - reference < _t.liftGainM) {
+        if (current == null || current - reference < gainM) {
             return false;
         }
 
         var deltas = _count - 1 - referenceIndex;
-        if (deltas < Config.LIFT_MIN_SAMPLES) {
+        if (deltas < minSamples) {
             return false;
         }
         var rising = 0;
@@ -212,15 +236,7 @@ class LiftDetector {
                 rising += 1;
             }
         }
-        if (rising.toFloat() / deltas.toFloat() < _t.liftMonotonicRatio) {
-            return false;
-        }
-
-        var smooth = _t.accelSmoothMg;
-        if (smooth != null && accelVarianceMg != null && accelVarianceMg >= smooth) {
-            return false;
-        }
-        return true;
+        return rising.toFloat() / deltas.toFloat() >= ratio;
     }
 
     //! Speed below 3 km/h and altitude stable for 90 s straight. Short stops

@@ -92,6 +92,24 @@ class TestSupport {
         return (actual - expected).abs() <= tolerance;
     }
 
+    //! Feed a descent then a lift, and report the second at which LIFT is seen.
+    //! Every second of latency is lift climb recorded as MTB ascent.
+    static function liftLatencySeconds(harness as DetectorHarness, climbRateMps as Float,
+                                accelMg as Float or Null) as Number {
+        // Establish a descent first, exactly as a real run would.
+        var timeMs = harness.feedRamp(0, 40, 1000.0, -2.0, 8.0, 300.0);
+        var altitude = 1000.0 - 2.0 * 40;
+
+        for (var i = 0; i < 60; i++) {
+            harness.detector.update(altitude + climbRateMps * i, 3.0, 0.0, accelMg, timeMs);
+            if (harness.detector.state == Config.STATE_LIFT) {
+                return i;
+            }
+            timeMs += 1000;
+        }
+        return -1;
+}
+
     //! Feed a run with a constant descent rate and speed, using the cumulative
     //! distance channel the watch would provide.
     //!

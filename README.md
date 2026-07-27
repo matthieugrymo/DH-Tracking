@@ -41,7 +41,7 @@ vitesse max du run.
 
 | Réglage | Valeurs | Défaut |
 |---|---|---|
-| Enregistrement | Journée complète · Descentes seules | Journée complète |
+| Enregistrement | Descentes seules · Journée complète | Descentes seules |
 | Type de remontée | Télésiège/cabine · Téléski · Mixte | Télésiège |
 | Sensibilité détection | Basse (×1.5) · Normale (×1) · Haute (×0.7) | Normale |
 | Résumé de fin de descente | on/off | on |
@@ -50,27 +50,46 @@ vitesse max du run.
 
 ## Enregistrement et synchro Strava
 
-Connect IQ ne sait pas mettre le chrono en pause tout en continuant d'écrire des
-points GPS : une session arrêtée n'enregistre **rien**. Il faut donc choisir, et
-c'est le réglage *Enregistrement* qui le porte.
+Connect IQ n'offre qu'un seul levier : le chrono tourne, ou pas.
+`Activity.Info.totalAscent` est en lecture seule et une session n'expose que
+start/stop/addLap/save/discard. La montre accumule le temps **et** le dénivelé
+exactement pendant que le chrono tourne, et une session arrêtée n'écrit aucun
+point. Trois choses n'en font donc qu'une seule, indissociables :
 
-| | Journée complète (défaut) | Descentes seules |
+> temps d'activité hors remontées ⟺ D+ hors remontées ⟺ trou dans la trace GPS
+
+| | Descentes seules (défaut) | Journée complète |
 |---|---|---|
-| Trace GPS | continue | coupée pendant les remontées, sauts en ligne droite |
-| Dénivelé positif (Strava) | correct | inexploitable |
-| Temps d'activité du FIT | journée entière | temps de descente |
-| Temps de descente | via les laps et l'écran 2 | = temps d'activité |
-| Laps | alternance remontée / descente | un lap par descente |
+| Temps d'activité | temps de descente | journée entière |
+| **D+ de l'activité** | **≈ 0, le cumul VTT reste propre** | **inclut tout le D+ des remontées** |
+| Trace GPS | descentes reliées en ligne droite | continue |
+| Laps | un lap par descente | alternance remontée / descente |
 
-L'activité remonte sur Strava par la chaîne habituelle : la montre écrit le FIT
-dans `GARMIN/ACTIVITY/`, Garmin Connect Mobile le synchronise, puis Garmin
-Connect le pousse vers Strava si la synchro automatique Garmin↔Strava est
-autorisée. Le fait que l'app soit sideloadée ne change rien à cette chaîne.
+Le défaut reproduit le profil **Ski alpin** : c'est le comportement voulu pour ne
+pas polluer le dénivelé positif VTT. Le raccord en ligne droite entre le bas d'une
+descente et le haut de la suivante suit à peu près le tracé de la remontée, un
+câble étant rectiligne entre pylônes.
 
-À savoir : **Strava ignore les champs développeur FIT.** Le nombre de descentes
-et le dénivelé négatif total s'affichent dans Garmin Connect (c'est le rôle de
-`resources/fitcontributions/`) mais pas sur Strava. Les laps, eux, passent bien
-et donnent un split par descente.
+Le profil Ski alpin natif de Garmin, lui, garde la trace *et* exclut les
+remontées — parce qu'il ne passe pas par cette API. Ce n'est pas reproductible
+depuis une app Connect IQ.
+
+La synchro passe par la chaîne habituelle : la montre écrit le FIT dans
+`GARMIN/ACTIVITY/`, Garmin Connect Mobile le synchronise, puis Garmin Connect le
+pousse vers Strava si la synchro automatique Garmin↔Strava est autorisée. Le fait
+que l'app soit sideloadée ne change rien.
+
+Deux points à vérifier à la première sortie :
+
+- **Strava ignore les champs développeur FIT.** Le nombre de descentes et le
+  dénivelé négatif total s'affichent dans Garmin Connect (rôle de
+  `resources/fitcontributions/`) mais pas sur Strava. Les laps passent bien et
+  donnent un split par descente.
+- **Le D+ recalculé par Strava.** Garmin Connect lit le `total_ascent` du FIT, qui
+  exclut bien les remontées. Strava recalcule plutôt à partir du flux d'altitude,
+  où le saut entre le bas d'une descente et le haut de la suivante est un delta
+  positif. Selon la façon dont Strava traite les coupures de temps, ce saut peut
+  ou non être compté. À contrôler sur la première activité.
 
 ## Champs développeur FIT
 

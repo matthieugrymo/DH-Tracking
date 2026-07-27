@@ -31,10 +31,10 @@ Source : [spec-dh-tracker-connectiq.md](../spec-dh-tracker-connectiq.md)
 ## Vérification
 
 - [x] Compilation `fenix7pro` — typecheck **strict** (`-l 3`), zéro warning
-- [x] Compilation des 6 produits d'origine, en release (`-r`), ~20 Ko chacun
+- [x] Compilation des 6 produits installables, en release (`-r`), ~20 Ko chacun
 - [ ] Compilation des 2 variantes Pro Solar sans Wi-Fi ajoutées au manifeste
-- [x] **50 tests unitaires exécutés dans le simulateur : 50 PASS, 0 fail,
-      0 erreur** après les correctifs de revue
+- [x] **57 tests unitaires exécutés dans le simulateur (fenix7s) : 57 PASS,
+      0 fail, 0 erreur**
 - [ ] Rendu des écrans dans le simulateur — **non vérifiable ici** : le pack de
       polices Garmin manque (téléchargement SDK Manager, compte Garmin requis).
       Ce n'est pas un défaut du code : l'exemple `RecordSample` livré par Garmin
@@ -60,11 +60,10 @@ Source : [spec-dh-tracker-connectiq.md](../spec-dh-tracker-connectiq.md)
 
 3. **Dénivelé du run mesuré jusqu'au point le plus bas**, et non jusqu'à
    l'altitude à l'instant de la bascule d'état (§3.1). La condition LIFT exige
-   10 m de gain mesurés sur une fenêtre de 20 s : la bascule arrive donc ~20 s
-   après l'embarquement, quand le télésiège a déjà grimpé plusieurs dizaines de
-   mètres. Prendre l'altitude à cet instant amputerait chaque descente de ce
-   gain — de l'ordre de 40 m par run, soit >10 % sur une journée, ce qui ferait
-   échouer le critère ±3 % du §11. Symétriquement, l'altitude de départ du run
+   un gain d'altitude confirmé sur une fenêtre : la bascule arrive ~9 s après
+   l'embarquement (17 s sans la fenêtre courte), quand le télésiège a déjà grimpé
+   une vingtaine de mètres. Prendre l'altitude à cet instant amputerait chaque
+   descente de ce gain, ce qui ferait échouer le critère ±3 % du §11. Symétriquement, l'altitude de départ du run
    est relue une fenêtre de détection en arrière (`LiftDetector.altitudeBefore`)
    pour retrouver le vrai haut de piste.
 
@@ -77,23 +76,26 @@ Source : [spec-dh-tracker-connectiq.md](../spec-dh-tracker-connectiq.md)
 
 ### Points d'attention pour le terrain
 
-- **Trace GPS pendant les remontées — tranché par l'utilisateur.** Les deux
-  exigences du §11 d'origine (« trace GPS complète » et « temps d'activité exclut
-  les remontées ») sont mutuellement exclusives : Connect IQ n'a pas de « chrono
-  en pause mais enregistrement continu », une session arrêtée n'écrit aucun point.
-  La v1 avait retenu l'exclusion des remontées. L'utilisateur a arbitré en faveur
-  de la trace continue (trace propre + dénivelé correct sur Strava), les §1/§8/§11
-  ont été corrigés en conséquence, et le comportement d'origine reste accessible
-  par le réglage « Enregistrement › Descentes seules ». Le temps de descente reste
-  disponible via les laps, l'écran 2 et le champ dev `lift_time`.
-- **Latence de détection.** La bascule LIFT arrive ~20 s après l'embarquement.
-  En mode « journée complète » c'est sans effet sur le temps d'activité (qui
-  couvre la journée), mais la frontière de lap descente/remontée est décalée
-  d'autant, donc le split Strava d'une descente inclut ~20 s de remontée. En mode
-  « descentes seules » ces 20 s comptent dans le temps d'activité et ne peuvent
-  pas être antidatées (`session.stop()` n'accepte pas d'horodatage).
-  `LIFT_WINDOW_SEC` est le paramètre à raccourcir si le terrain le confirme — au
-  prix de faux positifs sur les liaisons montantes.
+- **Trace GPS pendant les remontées — tranché par l'utilisateur.** Connect IQ
+  n'offre qu'un levier : le chrono tourne ou pas. `Activity.Info.totalAscent` est
+  en lecture seule et une session n'expose que start/stop/addLap/save/discard, donc
+  temps d'activité hors remontées, D+ hors remontées et trou dans la trace sont une
+  seule et même bascule. L'utilisateur a arbitré sur le **D+** : compter le
+  dénivelé des remontées polluerait son cumul VTT. Défaut = « descentes seules »
+  (modèle ski) ; « journée complète » reste disponible pour qui préfère la trace.
+  Le profil Ski alpin natif fait les deux, mais il ne passe pas par cette API.
+- **Latence de détection LIFT = du D+ parasite.** Chaque seconde avant la bascule
+  LIFT est du dénivelé de remontée accumulé par la montre. La fenêtre large seule
+  (10 m / 20 s / 80 % monotone) bascule à 17 s, soit ~34 m par descente — ~400 m
+  sur une journée de 12 runs. Une seconde fenêtre plus courte (6 m / 8 s / 90 %
+  monotone, même filtre accéléromètre) ramène la latence à 9 s, soit ~18 m.
+  Mesuré par `testFastWindowCutsLiftLatency`, qui échoue si l'écart se referme.
+  Descendre plus bas demanderait de relâcher la monotonie et ferait apparaître des
+  faux positifs sur les liaisons montantes.
+- **D+ recalculé par Strava — à vérifier au terrain.** Garmin Connect lit le
+  `total_ascent` du FIT, qui exclut bien les remontées. Strava recalcule à partir
+  du flux d'altitude, où le saut entre deux descentes est un delta positif ; selon
+  son traitement des coupures de temps il peut le compter. Non vérifiable ici.
 - **Seuils accéléromètre à calibrer.** `ACCEL_ROUGH_MG = 120` et
   `ACCEL_SMOOTH_MG = 60` (écart-type de la magnitude, milli-g) sont des valeurs
   de départ raisonnables mais non mesurées. C'est le premier réglage à ajuster.

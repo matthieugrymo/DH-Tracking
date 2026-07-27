@@ -47,22 +47,28 @@ module Config {
     // ------------------------------------------------------------------
     // "Enregistrement" setting.
     //
-    // Connect IQ has no "pause the timer but keep writing GPS records": while a
-    // session is stopped nothing at all is recorded. That forces a choice, and
-    // it is the user's to make:
+    // Connect IQ gives exactly one lever here: whether the session timer is
+    // running. `Activity.Info.totalAscent` is read-only and a Session exposes
+    // only start/stop/addLap/save/discard, so the device accumulates both time
+    // *and* ascent precisely while the timer runs — and a stopped session writes
+    // no records at all. Three consequences are therefore one and the same
+    // switch: activity time excluding lifts, ascent excluding lifts, and a gap
+    // in the GPS track. They cannot be separated.
     //
-    //   RECORDING_FULL_DAY    the session runs from START to STOP. The GPS
-    //                         track is continuous and elevation gain is correct,
-    //                         so the activity looks right in Garmin Connect and
-    //                         on Strava. Activity time covers the whole day,
-    //                         lifts included; the per-run laps and the
+    //   RECORDING_DESCENT_ONLY (default) the session is stopped on every lift.
+    //                         This is the alpine ski model: activity time is
+    //                         descent time, and the lift climb never lands in
+    //                         the MTB ascent total. Cost: no GPS point is
+    //                         written during a lift, so the map shows each
+    //                         descent joined by a straight line. Since a cable
+    //                         runs straight between pylons (§4.1), that
+    //                         connector roughly traces the lift anyway.
+    //
+    //   RECORDING_FULL_DAY    the session runs from START to STOP, so the GPS
+    //                         track is continuous. Cost: every metre the lift
+    //                         climbs is counted as MTB ascent, and activity time
+    //                         covers the whole day. Per-run laps and the
     //                         `lift_time` developer field carry the breakdown.
-    //
-    //   RECORDING_DESCENT_ONLY the session is stopped on every lift, so activity
-    //                         time is descent time only — but no GPS point is
-    //                         written during a lift, leaving straight-line jumps
-    //                         between the bottom of one run and the top of the
-    //                         next, and an unusable elevation gain figure.
     // ------------------------------------------------------------------
     enum {
         RECORDING_FULL_DAY     = 0,
@@ -100,6 +106,17 @@ module Config {
     const LIFT_MONOTONIC_RATIO_TBAR = 0.9;
     //! Below this many samples in the window the monotonicity ratio is noise.
     const LIFT_MIN_SAMPLES = 8;
+
+    //! Narrow confirmation window. Latency before LIFT is recognised is charged
+    //! straight to the activity's ascent total (the device accumulates ascent
+    //! while the timer runs), so a faster path pays for itself. A smaller gain is
+    //! acceptable because the monotonicity bar is raised to compensate: a steady
+    //! 0.75 m/s climb with almost every sample rising and no vibration is not
+    //! something a downhill bike does.
+    const LIFT_FAST_WINDOW_SEC     = 8;
+    const LIFT_FAST_GAIN_M         = 6.0;
+    const LIFT_FAST_MONOTONIC_RATIO = 0.9;
+    const LIFT_FAST_MIN_SAMPLES    = 6;
 
     // ------------------------------------------------------------------
     // DESCENT -> IDLE (spec §4.3)
@@ -146,6 +163,8 @@ module Config {
         public var descentMinSpeedMps as Float = 0.0;
         public var liftGainM as Float = 0.0;
         public var liftMonotonicRatio as Float = 0.0;
+        public var liftFastGainM as Float = 0.0;
+        public var liftFastMonotonicRatio as Float = 0.0;
         public var idleMaxSpeedMps as Float = 0.0;
         public var idleAltToleranceM as Float = 0.0;
 
@@ -159,6 +178,8 @@ module Config {
             descentMinSpeedMps = DESCENT_MIN_SPEED_MPS;
             liftGainM          = LIFT_GAIN_M;
             liftMonotonicRatio = LIFT_MONOTONIC_RATIO;
+            liftFastGainM      = LIFT_FAST_GAIN_M;
+            liftFastMonotonicRatio = LIFT_FAST_MONOTONIC_RATIO;
             idleMaxSpeedMps    = IDLE_MAX_SPEED_MPS;
             idleAltToleranceM  = IDLE_ALT_TOLERANCE_M;
             accelRoughMg       = ACCEL_ROUGH_MG;
@@ -181,6 +202,7 @@ module Config {
             }
             descentDropM = DESCENT_DROP_M * factor;
             liftGainM    = LIFT_GAIN_M * factor;
+            liftFastGainM = LIFT_FAST_GAIN_M * factor;
             accelRoughMg = ACCEL_ROUGH_MG * factor;
             accelSmoothMg = ACCEL_SMOOTH_MG / factor;
         }
@@ -193,6 +215,9 @@ module Config {
                 // accelerometer must not veto. Altitude monotonicity leads.
                 accelSmoothMg = null;
                 liftMonotonicRatio = LIFT_MONOTONIC_RATIO_TBAR;
+                liftFastMonotonicRatio = LIFT_MONOTONIC_RATIO_TBAR
+                    > LIFT_FAST_MONOTONIC_RATIO
+                    ? LIFT_MONOTONIC_RATIO_TBAR : LIFT_FAST_MONOTONIC_RATIO;
             } else if (liftType == LIFT_MIXED) {
                 var smooth = accelSmoothMg;
                 if (smooth != null) {
@@ -252,7 +277,7 @@ module Config {
     }
 
     function recordingMode() as Number {
-        return getNumber(PROP_RECORDING, RECORDING_FULL_DAY);
+        return getNumber(PROP_RECORDING, RECORDING_DESCENT_ONLY);
     }
 
     //! True when the recording has to be stopped during lifts, i.e. when the

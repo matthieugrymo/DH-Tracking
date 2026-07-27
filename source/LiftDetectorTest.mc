@@ -403,3 +403,80 @@ function testFullDaySequence(logger as Logger) as Boolean {
            && harness.endCount == 2
            && harness.detector.state == Config.STATE_DESCENT;
 }
+
+// ----------------------------------------------------------------------
+// LIFT detection latency
+// ----------------------------------------------------------------------
+
+//! Chaque seconde de latence avant la bascule LIFT est du dénivelé de remontée
+//! compté comme du D+ VTT. La fenêtre courte doit la ramener sous 15 s.
+(:test)
+function testLiftIsDetectedQuickly(logger as Logger) as Boolean {
+    var latency = TestSupport.liftLatencySeconds(
+        TestSupport.makeHarness(Config.LIFT_CHAIRLIFT), 2.0, 20.0);
+
+    logger.debug("chairlift latency=" + latency + " s => ~"
+                 + (latency * 2) + " m of lift climb recorded");
+    return latency >= 0 && latency <= 15;
+}
+
+//! Un téléski plus lent reste détecté, un peu plus tard.
+(:test)
+function testTbarIsDetectedQuickly(logger as Logger) as Boolean {
+    var latency = TestSupport.liftLatencySeconds(
+        TestSupport.makeHarness(Config.LIFT_TBAR), 1.0, 90.0);
+
+    logger.debug("tbar latency=" + latency + " s");
+    return latency >= 0 && latency <= 25;
+}
+
+//! La fenêtre courte ne doit pas rendre les faux positifs possibles : une
+//! remontée irrégulière en pédalant est toujours rejetée.
+(:test)
+function testFastWindowStillRejectsPedallingClimb(logger as Logger) as Boolean {
+    var harness = TestSupport.makeHarness(Config.LIFT_CHAIRLIFT);
+    var timeMs = 0;
+    var altitude = 1000.0;
+    for (var i = 0; i < 40; i++) {
+        harness.detector.update(altitude, 2.0, 0.0, 250.0, timeMs);
+        altitude += i % 2 == 0 ? 2.0 : -0.5;
+        timeMs += 1000;
+    }
+
+    logger.debug("state=" + harness.detector.state);
+    return harness.detector.state == Config.STATE_IDLE;
+}
+
+//! Ni les replats roulants en cours de piste.
+(:test)
+function testFastWindowStillKeepsFlatSectionInDescent(logger as Logger) as Boolean {
+    var harness = TestSupport.makeHarness(Config.LIFT_CHAIRLIFT);
+    var timeMs = harness.feedRamp(0, 12, 1000.0, -2.0, 5.0, 300.0);
+    // A rolling section that drifts up slightly, with the bike still working.
+    harness.feedRamp(timeMs, 40, 978.0, 0.15, 3.0, 250.0);
+
+    logger.debug("state=" + harness.detector.state);
+    return harness.detector.state == Config.STATE_DESCENT;
+}
+
+//! Mesure ce que coûte la fenêtre large seule, en neutralisant la fenêtre
+//! courte. Sert de garde-fou : si la fenêtre courte régresse, l'écart de
+//! dénivelé de remontée compté en D+ VTT redevient visible ici.
+(:test)
+function testFastWindowCutsLiftLatency(logger as Logger) as Boolean {
+    var wideOnly = TestSupport.makeThresholds(Config.SENS_NORMAL,
+                                              Config.LIFT_CHAIRLIFT);
+    wideOnly.liftFastGainM = 9999.0; // unreachable => wide window only
+    var wideLatency = TestSupport.liftLatencySeconds(
+        new DetectorHarness(wideOnly), 2.0, 20.0);
+
+    var bothLatency = TestSupport.liftLatencySeconds(
+        TestSupport.makeHarness(Config.LIFT_CHAIRLIFT), 2.0, 20.0);
+
+    logger.debug("wide only=" + wideLatency + " s (~" + (wideLatency * 2)
+                 + " m), with fast window=" + bothLatency + " s (~"
+                 + (bothLatency * 2) + " m)");
+    return wideLatency > 0 && bothLatency > 0
+           && bothLatency < wideLatency
+           && wideLatency - bothLatency >= 5;
+}

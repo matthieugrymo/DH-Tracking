@@ -111,13 +111,13 @@ function testSessionStaysRecordingAcrossLaps(logger as Logger) as Boolean {
     return recordingThroughout && saved && !manager.isOpen();
 }
 
-//! Le réglage par défaut est « journée complète » : trace GPS continue et
-//! dénivelé correct dans Garmin Connect et Strava.
+//! Le réglage par défaut est « descentes seules » : comportement ski, le temps
+//! d'activité et le dénivelé positif excluent les remontées.
 (:test)
-function testRecordingModeDefaultsToFullDay(logger as Logger) as Boolean {
+function testRecordingModeDefaultsToDescentOnly(logger as Logger) as Boolean {
     var mode = Config.recordingMode();
     var pause = Config.pauseOnLift();
 
     logger.debug("mode=" + mode + " pauseOnLift=" + pause);
-    return mode == Config.RECORDING_FULL_DAY && !pause;
+    return mode == Config.RECORDING_DESCENT_ONLY && pause;
 }
