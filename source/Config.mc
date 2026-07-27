@@ -53,6 +53,9 @@ module Config {
     const ACCEL_SAMPLE_RATE = 25;   // Hz; drop to 10 if battery life suffers
     const ACCEL_PERIOD_SEC  = 1;    // one accel callback per second
     const ACCEL_STALE_MS    = 4000; // no callback for this long => unavailable
+    //! A larger gap invalidates detector windows. Without this guard an altitude
+    //! sample from before a sensor outage could satisfy a 6 s / 20 s window.
+    const SAMPLE_GAP_RESET_MS = 2500;
 
     // ------------------------------------------------------------------
     // IDLE/LIFT -> DESCENT (spec §4.3)

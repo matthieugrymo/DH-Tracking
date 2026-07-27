@@ -6,10 +6,12 @@ import Toybox.WatchUi;
 
 //! The two ski-style screens plus the end-of-run summary card (spec §5).
 //!
-//! Black background, large glyphs, readable in full sun on a 260x260 MIP
-//! display. Nothing is hardcoded to 260 px: every position derives from
-//! `dc.getWidth()` / `dc.getHeight()` so AMOLED models are not broken
-//! (spec §12).
+//! Black background, large glyphs, readable in full sun on a MIP display.
+//!
+//! The supported products span two screen families — round-240x240 (7S, 7S Pro)
+//! and round-260x260 (7, 7X and the Pro/Solar Edition variants) — so no
+//! position is hardcoded: every one derives from `dc.getWidth()` /
+//! `dc.getHeight()`, which also keeps AMOLED models working (spec §12).
 class DhTrackerView extends WatchUi.View {
 
     public const PAGE_RUN = 0;

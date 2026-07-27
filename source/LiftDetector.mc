@@ -112,6 +112,12 @@ class LiftDetector {
             return state;
         }
 
+        var lastSample = _lastSampleMs;
+        if (lastSample != null
+            && timeMs - lastSample > Config.SAMPLE_GAP_RESET_MS) {
+            _clearSampleHistory();
+        }
+
         var smoothed = _pushRaw(altitudeM);
         _smoothedAlt = smoothed;
         _lastSampleMs = timeMs;
@@ -284,6 +290,19 @@ class LiftDetector {
         if (_count < _size) {
             _count += 1;
         }
+    }
+
+    //! Keep the current state but require fresh samples before another automatic
+    //! transition. This is used after a barometer/timer gap.
+    private function _clearSampleHistory() as Void {
+        _rawCount = 0;
+        _rawNext = 0;
+        _count = 0;
+        _next = 0;
+        _idleSinceMs = null;
+        _idleRefAlt = null;
+        _smoothedAlt = null;
+        _lastSampleMs = null;
     }
 
     //! Physical slot of the `index`-th oldest buffered sample.
