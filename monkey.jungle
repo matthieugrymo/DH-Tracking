@@ -1,0 +1,5 @@
+project.manifest = manifest.xml
+
+# source/ and resources*/ are picked up by the default jungle rules.
+# Default (fallback) resources are French; resources-eng/ overrides them on
+# English-language devices (spec §9).

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English overrides for English-language devices (spec §9). -->
+<strings>
+    <string id="AppName">DH Tracker</string>
+    <string id="SessionName">DH</string>
+
+    <string id="StateDescent">RUN #</string>
+    <string id="StateLift">LIFT — paused</string>
+    <string id="StateIdle">STOPPED — paused</string>
+    <string id="StateReady">READY — START</string>
+    <string id="ScreenDay">DAY</string>
+
+    <string id="LabelRuns">Runs</string>
+    <string id="LabelDrop">Descent</string>
+    <string id="LabelTime">Time</string>
+    <string id="LabelMaxSpeed">Max spd</string>
+    <string id="LabelSpeed">Speed</string>
+    <string id="LabelRunSummary">Run complete</string>
+
+    <string id="UnitKmh">km/h</string>
+    <string id="UnitMeter">m</string>
+
+    <string id="MenuTitle">End of day</string>
+    <string id="MenuSave">Save</string>
+    <string id="MenuResume">Resume</string>
+    <string id="MenuDiscard">Discard</string>
+
+    <string id="SettingLiftType">Lift type</string>
+    <string id="SettingLiftTypePrompt">How strongly the accelerometer gates lift detection</string>
+    <string id="LiftTypeChairlift">Chairlift / gondola</string>
+    <string id="LiftTypeTbar">Surface lift</string>
+    <string id="LiftTypeMixed">Mixed</string>
+
+    <string id="SettingSensitivity">Detection sensitivity</string>
+    <string id="SettingSensitivityPrompt">Threshold multiplier: low x1.5, normal x1, high x0.7</string>
+    <string id="SensitivityLow">Low</string>
+    <string id="SensitivityNormal">Normal</string>
+    <string id="SensitivityHigh">High</string>
+
+    <string id="SettingRunSummary">End-of-run summary</string>
+    <string id="SettingRunSummaryPrompt">Show the finished run's stats for 5 s</string>
+
+    <string id="SettingVibration">Vibration</string>
+    <string id="SettingVibrationPrompt">1 pulse on run start, 2 on pause</string>
+
+    <string id="SettingGps">GPS</string>
+    <string id="SettingGpsPrompt">SatIQ (battery) or multi-band (accuracy)</string>
+    <string id="GpsSatIq">SatIQ</string>
+    <string id="GpsMultiBand">Multi-band</string>
+</strings>

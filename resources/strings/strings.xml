@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Langue par défaut : français (spec §9). resources-eng/ surcharge en anglais. -->
+<strings>
+    <string id="AppName">DH Tracker</string>
+    <string id="SessionName">DH</string>
+
+    <!-- Bandeaux d'état -->
+    <string id="StateDescent">DESCENTE N°</string>
+    <string id="StateLift">REMONTÉE — pause</string>
+    <string id="StateIdle">ARRÊT — pause</string>
+    <string id="StateReady">PRÊT — START</string>
+    <string id="ScreenDay">JOURNÉE</string>
+
+    <!-- Libellés -->
+    <string id="LabelRuns">Descentes</string>
+    <string id="LabelDrop">Dénivelé</string>
+    <string id="LabelTime">Temps</string>
+    <string id="LabelMaxSpeed">V. max</string>
+    <string id="LabelSpeed">Vitesse</string>
+    <string id="LabelRunSummary">Descente terminée</string>
+
+    <!-- Unités -->
+    <string id="UnitKmh">km/h</string>
+    <string id="UnitMeter">m</string>
+
+    <!-- Menu de fin -->
+    <string id="MenuTitle">Fin de journée</string>
+    <string id="MenuSave">Enregistrer</string>
+    <string id="MenuResume">Reprendre</string>
+    <string id="MenuDiscard">Supprimer</string>
+
+    <!-- Réglages (Garmin Connect Mobile) -->
+    <string id="SettingLiftType">Type de remontée</string>
+    <string id="SettingLiftTypePrompt">Discriminant accéléromètre pour la détection de remontée</string>
+    <string id="LiftTypeChairlift">Télésiège / cabine</string>
+    <string id="LiftTypeTbar">Téléski</string>
+    <string id="LiftTypeMixed">Mixte</string>
+
+    <string id="SettingSensitivity">Sensibilité détection</string>
+    <string id="SettingSensitivityPrompt">Multiplie les seuils : basse ×1.5, normale ×1, haute ×0.7</string>
+    <string id="SensitivityLow">Basse</string>
+    <string id="SensitivityNormal">Normale</string>
+    <string id="SensitivityHigh">Haute</string>
+
+    <string id="SettingRunSummary">Résumé de fin de descente</string>
+    <string id="SettingRunSummaryPrompt">Affiche 5 s le bilan du run qui vient de se terminer</string>
+
+    <string id="SettingVibration">Vibrations</string>
+    <string id="SettingVibrationPrompt">1 pulse au départ de descente, 2 en pause</string>
+
+    <string id="SettingGps">GPS</string>
+    <string id="SettingGpsPrompt">SatIQ (autonomie) ou multi-bande (précision)</string>
+    <string id="GpsSatIq">SatIQ</string>
+    <string id="GpsMultiBand">Multi-bande</string>
+</strings>

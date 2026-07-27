@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Réglages de l'app (spec §7). Éditables depuis Garmin Connect Mobile /
+  Garmin Express, lus via Application.Properties (voir Config.mc).
+-->
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+
+    <properties>
+        <!-- 0 = télésiège/cabine, 1 = téléski, 2 = mixte -->
+        <property id="liftType" type="number">0</property>
+        <!-- 0 = basse (x1.5), 1 = normale (x1), 2 = haute (x0.7) -->
+        <property id="sensitivity" type="number">1</property>
+        <property id="runSummary" type="boolean">true</property>
+        <property id="vibration" type="boolean">true</property>
+        <!-- 0 = SatIQ, 1 = multi-bande -->
+        <property id="gpsMode" type="number">0</property>
+    </properties>
+
+    <settings>
+        <setting propertyKey="@Properties.liftType"
+                 title="@Strings.SettingLiftType"
+                 prompt="@Strings.SettingLiftTypePrompt">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.LiftTypeChairlift</listEntry>
+                <listEntry value="1">@Strings.LiftTypeTbar</listEntry>
+                <listEntry value="2">@Strings.LiftTypeMixed</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.sensitivity"
+                 title="@Strings.SettingSensitivity"
+                 prompt="@Strings.SettingSensitivityPrompt">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.SensitivityLow</listEntry>
+                <listEntry value="1">@Strings.SensitivityNormal</listEntry>
+                <listEntry value="2">@Strings.SensitivityHigh</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.runSummary"
+                 title="@Strings.SettingRunSummary"
+                 prompt="@Strings.SettingRunSummaryPrompt">
+            <settingConfig type="boolean"/>
+        </setting>
+
+        <setting propertyKey="@Properties.vibration"
+                 title="@Strings.SettingVibration"
+                 prompt="@Strings.SettingVibrationPrompt">
+            <settingConfig type="boolean"/>
+        </setting>
+
+        <setting propertyKey="@Properties.gpsMode"
+                 title="@Strings.SettingGps"
+                 prompt="@Strings.SettingGpsPrompt">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.GpsSatIq</listEntry>
+                <listEntry value="1">@Strings.GpsMultiBand</listEntry>
+            </settingConfig>
+        </setting>
+    </settings>
+</resources>
