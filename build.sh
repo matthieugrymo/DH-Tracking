@@ -12,7 +12,9 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PRODUCTS=(fenix7 fenix7s fenix7x fenix7pro fenix7spro fenix7xpro)
+PRODUCTS=(fenix7 fenix7s fenix7x
+          fenix7pro fenix7spro fenix7xpro
+          fenix7pronowifi fenix7xpronowifi)
 TYPECHECK="${TYPECHECK:-3}"   # 0=off 1=gradual 2=informative 3=strict
 
 if [[ -z "${SDK_HOME:-}" ]]; then

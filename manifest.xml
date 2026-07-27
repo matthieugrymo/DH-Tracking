@@ -13,6 +13,14 @@
             <iq:product id="fenix7pro"/>
             <iq:product id="fenix7spro"/>
             <iq:product id="fenix7xpro"/>
+            <!--
+              The Pro line ships as two Connect IQ products per size: the
+              Sapphire models (Wi-Fi) are fenix7*pro, the plain "Solar Edition"
+              models are fenix7*pronowifi. Both are listed so either SKU can
+              install the app. Garmin defines no fenix7spronowifi.
+            -->
+            <iq:product id="fenix7pronowifi"/>
+            <iq:product id="fenix7xpronowifi"/>
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="Fit"/>

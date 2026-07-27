@@ -62,14 +62,33 @@ Remontent dans Garmin Connect en plus des métriques natives :
 ## Build
 
 Prérequis : le **Connect IQ SDK** (SDK Manager depuis
-<https://developer.garmin.com/connect-iq/sdk/>), avec les devices `fenix7`,
-`fenix7s`, `fenix7x`, `fenix7pro`, `fenix7spro`, `fenix7xpro` installés depuis
-l'onglet *Devices*. Le SDK Manager demande un compte Garmin — il télécharge les
-définitions de devices **et le pack de polices** dont le simulateur a besoin.
+<https://developer.garmin.com/connect-iq/sdk/>), avec tous les devices `fenix7*`
+installés depuis l'onglet *Devices*. Le SDK Manager demande un compte Garmin — il
+télécharge les définitions de devices **et le pack de polices** dont le
+simulateur a besoin.
+
+### Quel produit pour quelle montre ?
+
+La gamme Pro existe en **deux produits Connect IQ par taille** : les modèles
+Sapphire (avec Wi-Fi) et les modèles « Solar Edition » sans Wi-Fi. Vérifiez le
+numéro de pièce sur la montre — *Paramètres › Système › À propos* — avant de
+sideloader :
+
+| Montre | Numéro de pièce | Produit à builder |
+|---|---|---|
+| fēnix 7 Pro (Sapphire) | 006-B4375-00 | `fenix7pro` |
+| fēnix 7 Pro Solar Edition | 006-B4595-00 | `fenix7pronowifi` |
+| fēnix 7S Pro | 006-B4374-00 | `fenix7spro` |
+| fēnix 7X Pro (Sapphire) | 006-B4376-00 | `fenix7xpro` |
+| fēnix 7X Pro Solar Edition | 006-B4596-00 | `fenix7xpronowifi` |
+| fēnix 7 / 7S / 7X (non-Pro) | 006-B390x-00 | `fenix7` / `fenix7s` / `fenix7x` |
+
+Un `.prg` buildé pour le mauvais produit n'apparaîtra pas dans la liste
+d'activités de la montre.
 
 ```bash
-./build.sh                  # release, les 6 produits -> bin/
-./build.sh fenix7pro        # un seul produit
+./build.sh                  # release, tous les produits -> bin/
+./build.sh fenix7pronowifi  # un seul produit
 ./build.sh --test           # build avec les tests unitaires
 ./build.sh --run fenix7pro  # build + push dans le simulateur
 ```
@@ -94,16 +113,24 @@ télésiège, téléski, replat, file d'attente, bruit baro, `speed == null`,
 
 ## Sideload
 
-1. Brancher la montre en USB (mode MTP).
-2. Copier le `.prg` du produit correspondant dans `GARMIN/APPS/` de la montre :
+1. Brancher la montre en USB. Elle se monte comme un volume `GARMIN`.
+2. Copier le `.prg` **du produit correspondant à votre montre** (voir le tableau
+   ci-dessus) dans `GARMIN/APPS/` :
 
 ```bash
-cp bin/dh-tracker-fenix7pro.prg "/Volumes/GARMIN/GARMIN/APPS/dh-tracker.prg"
+cp bin/dh-tracker-fenix7pronowifi.prg "/Volumes/GARMIN/GARMIN/APPS/dh-tracker.prg"
 ```
 
-3. Copier aussi `bin/dh-tracker-settings.json` dans `GARMIN/APPS/SETTINGS/`
-   si vous voulez les réglages par défaut sur la montre.
-4. Éjecter, puis lancer *DH Tracker* depuis la liste d'activités.
+3. Éjecter le volume, puis lancer *DH Tracker* depuis la liste d'activités.
+
+> **Réglages d'une app sideloadée.** Garmin Connect Mobile ne propose les
+> réglages Connect IQ que pour les apps installées depuis le store ; une app
+> sideloadée démarre donc sur les valeurs par défaut de
+> `resources/settings/settings.xml`. Pour changer un réglage, modifiez la valeur
+> par défaut et rebuildez — c'est le chemin le plus fiable. Le
+> `bin/dh-tracker-<produit>-settings.json` généré à côté du `.prg` peut aussi
+> être copié dans `GARMIN/APPS/SETTINGS/`, mais le support varie selon les
+> firmwares.
 
 ## Structure
 
