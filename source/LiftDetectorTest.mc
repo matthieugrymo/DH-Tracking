@@ -201,6 +201,22 @@ function testNullAltitudeIsSafe(logger as Logger) as Boolean {
            && harness.detector.state == Config.STATE_DESCENT;
 }
 
+//! A barometer outage invalidates the old window. The first reading after the
+//! gap must not compare against an arbitrarily old altitude and start a run.
+(:test)
+function testAltitudeGapClearsDetectionWindow(logger as Logger) as Boolean {
+    var harness = TestSupport.makeHarness(Config.LIFT_CHAIRLIFT);
+    harness.feedRamp(0, 7, 1000.0, 0.0, 5.0, 300.0);
+
+    // A 20 m difference after a 23 s outage is not "8 m over 6 s".
+    harness.detector.update(980.0, 5.0, 0.0, 300.0, 30000);
+
+    logger.debug("state=" + harness.detector.state
+                 + " altitude=" + harness.detector.altitude());
+    return harness.detector.state == Config.STATE_IDLE
+           && harness.startCount == 0;
+}
+
 //! Hystérésis : état verrouillé 10 s après chaque transition (spec §4.4).
 (:test)
 function testHysteresisLocksStateFor10s(logger as Logger) as Boolean {

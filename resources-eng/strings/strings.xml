@@ -5,8 +5,12 @@
     <string id="SessionName">DH</string>
 
     <string id="StateDescent">RUN #</string>
-    <string id="StateLift">LIFT — paused</string>
-    <string id="StateIdle">STOPPED — paused</string>
+    <!-- "paused" only shows in descent-only mode, where the timer really
+         does stop during the lift. -->
+    <string id="StateLift">LIFT</string>
+    <string id="StateLiftPaused">LIFT — paused</string>
+    <string id="StateIdle">STOPPED</string>
+    <string id="StateIdlePaused">STOPPED — paused</string>
     <string id="StateReady">READY — START</string>
     <string id="ScreenDay">DAY</string>
 
@@ -25,6 +29,20 @@
     <string id="MenuResume">Resume</string>
     <string id="MenuDiscard">Discard</string>
 
+    <string id="ErrorStart">SESSION FAILED</string>
+    <string id="ErrorRecording">RECORDING STOPPED</string>
+    <string id="ErrorLap">LAP NOT CREATED</string>
+    <string id="ErrorSave">SAVE FAILED</string>
+    <string id="ErrorDiscard">DISCARD FAILED</string>
+
+    <string id="FitRunCountLabel">Runs</string>
+    <string id="FitTotalDropLabel">Total descent</string>
+    <string id="FitRunDropLabel">Run descent</string>
+    <string id="FitLiftTimeLabel">Lift time</string>
+    <string id="FitRunsUnit">runs</string>
+    <string id="FitMetersUnit">m</string>
+    <string id="FitSecondsUnit">s</string>
+
     <string id="SettingLiftType">Lift type</string>
     <string id="SettingLiftTypePrompt">How strongly the accelerometer gates lift detection</string>
     <string id="LiftTypeChairlift">Chairlift / gondola</string>
@@ -42,6 +60,11 @@
 
     <string id="SettingVibration">Vibration</string>
     <string id="SettingVibrationPrompt">1 pulse on run start, 2 on pause</string>
+
+    <string id="SettingRecording">Recording</string>
+    <string id="SettingRecordingPrompt">Full day: continuous GPS track and correct elevation gain in Garmin Connect and Strava, but activity time includes the lifts. Descents only: activity time equals descent time, but the GPS track is cut during lifts.</string>
+    <string id="RecordingFullDay">Full day</string>
+    <string id="RecordingDescentOnly">Descents only</string>
 
     <string id="SettingGps">GPS</string>
     <string id="SettingGpsPrompt">SatIQ (battery) or multi-band (accuracy)</string>

@@ -45,6 +45,31 @@ module Config {
     }
 
     // ------------------------------------------------------------------
+    // "Enregistrement" setting.
+    //
+    // Connect IQ has no "pause the timer but keep writing GPS records": while a
+    // session is stopped nothing at all is recorded. That forces a choice, and
+    // it is the user's to make:
+    //
+    //   RECORDING_FULL_DAY    the session runs from START to STOP. The GPS
+    //                         track is continuous and elevation gain is correct,
+    //                         so the activity looks right in Garmin Connect and
+    //                         on Strava. Activity time covers the whole day,
+    //                         lifts included; the per-run laps and the
+    //                         `lift_time` developer field carry the breakdown.
+    //
+    //   RECORDING_DESCENT_ONLY the session is stopped on every lift, so activity
+    //                         time is descent time only — but no GPS point is
+    //                         written during a lift, leaving straight-line jumps
+    //                         between the bottom of one run and the top of the
+    //                         next, and an unusable elevation gain figure.
+    // ------------------------------------------------------------------
+    enum {
+        RECORDING_FULL_DAY     = 0,
+        RECORDING_DESCENT_ONLY = 1
+    }
+
+    // ------------------------------------------------------------------
     // Sampling (spec §4.2, §11)
     // ------------------------------------------------------------------
     const SAMPLE_PERIOD_MS  = 1000; // main loop runs at 1 Hz, never faster
@@ -111,6 +136,7 @@ module Config {
     const PROP_RUN_SUMMARY = "runSummary";
     const PROP_VIBRATION   = "vibration";
     const PROP_GPS_MODE    = "gpsMode";
+    const PROP_RECORDING   = "recordingMode";
 
     //! Detector thresholds, resolved from the constants above plus the user
     //! settings. Pure data: no watch API is touched, so `LiftDetector` stays
@@ -223,6 +249,16 @@ module Config {
 
     function gpsMode() as Number {
         return getNumber(PROP_GPS_MODE, GPS_SAT_IQ);
+    }
+
+    function recordingMode() as Number {
+        return getNumber(PROP_RECORDING, RECORDING_FULL_DAY);
+    }
+
+    //! True when the recording has to be stopped during lifts, i.e. when the
+    //! activity timer should show descent time only.
+    function pauseOnLift() as Boolean {
+        return recordingMode() == RECORDING_DESCENT_ONLY;
     }
 
     //! Build the threshold set matching the current user settings.

@@ -2,7 +2,9 @@
 
 ## 1. Objectif
 
-Développer une **Device App Connect IQ** pour Garmin **Fenix 7 Pro Solar** qui enregistre une journée de VTT de descente en **lift-served** (remontées mécaniques) selon le **modèle du profil Ski alpin de Garmin** : découpage automatique en descentes (« runs »), chrono actif uniquement en descente, remontées mécaniques exclues du temps d'activité, et statistiques par run.
+Développer une **Device App Connect IQ** pour Garmin **Fenix 7 / 7S / 7X** (séries standard et Pro) qui enregistre une journée de VTT de descente en **lift-served** (remontées mécaniques) selon le **modèle du profil Ski alpin de Garmin** : découpage automatique en descentes (« runs »), et statistiques par run.
+
+**Révisé.** L'enregistrement se fait par défaut sur la **journée complète** : le chrono tourne du START au STOP, ce qui donne une trace GPS continue et un dénivelé correct dans Garmin Connect et sur Strava. Connect IQ ne sait pas mettre le chrono en pause tout en continuant d'écrire des points GPS — une session arrêtée n'enregistre rien du tout — donc exclure les remontées du temps d'activité coûterait la trace. Le découpage descente / remontée est porté par les laps (un lap par descente) et par le champ développeur `lift_time`. Le comportement d'origine reste disponible via le réglage « Enregistrement › Descentes seules ».
 
 Aucune interaction utilisateur entre le START du matin et le STOP du soir.
 
@@ -144,9 +146,9 @@ session = ActivityRecording.createSession({
 });
 ```
 
-- `session.start()` à chaque entrée en DESCENT
-- `session.addLap()` à chaque sortie de DESCENT (un lap = un run, comme le ski) — **activé par défaut**, ce n'est pas optionnel ici puisque c'est le support des métriques par descente
-- `session.stop()` pour la pause (ne clôture pas)
+- `session.start()` au premier appui START en mode « journée complète » ; à chaque entrée en DESCENT en mode « descentes seules »
+- `session.addLap()` à chaque sortie de DESCENT (un lap = un run, comme le ski) — **activé par défaut**, ce n'est pas optionnel ici puisque c'est le support des métriques par descente. En mode « journée complète » un lap est aussi fermé à chaque *entrée* en DESCENT, de sorte que les laps alternent remontée / descente et que chaque descente ait son propre split
+- `session.stop()` **uniquement** en mode « descentes seules » (ne clôture pas). En mode « journée complète » l'enregistrement ne s'arrête jamais avant le STOP final : c'est la condition d'une trace GPS continue
 - `session.save()` uniquement en fin de journée
 
 ## 9. Structure du projet
@@ -180,8 +182,9 @@ dh-tracker/
 ## 11. Critères d'acceptation
 
 - [ ] L'activité apparaît dans Garmin Connect en Cyclisme/VTT descente, trace GPS complète, un lap par descente.
+- [ ] L'activité remonte sur Strava via la synchro Garmin, avec une trace continue et un dénivelé positif cohérent.
 - [ ] Le nombre de descentes détectées est exact sur une journée test (tolérance : 0 manquée, ≤ 1 faux départ).
-- [ ] Le temps d'activité exclut les remontées (écart < 5 % vs pointage manuel).
+- [ ] Le temps de descente cumulé — affiché à l'écran 2 et déductible des laps — est cohérent à < 5 % du pointage manuel. Le *temps d'activité* du FIT, lui, couvre la journée entière en mode « journée complète » : c'est voulu (voir §1).
 - [ ] Dénivelé négatif total cohérent à ± 3 % avec le dénivelé annoncé de la station × nombre de descentes.
 - [ ] Aucun appui entre le START initial et le STOP final.
 - [ ] Consommation comparable à un profil VTT natif en SatIQ (boucle principale à 1 Hz max ; l'accéléromètre est le poste à surveiller — si l'autonomie chute, réduire à 10 Hz).

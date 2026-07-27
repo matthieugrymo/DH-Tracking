@@ -2,9 +2,8 @@
 
 Application Connect IQ (Device App) pour Garmin **fēnix 7 / 7 Pro** qui
 enregistre une journée de VTT de descente en lift-served sur le modèle du profil
-**Ski alpin** de Garmin : découpage automatique en descentes, chrono actif
-uniquement en descente, remontées mécaniques exclues du temps d'activité,
-statistiques par run.
+**Ski alpin** de Garmin : découpage automatique en descentes, un lap FIT par
+descente, statistiques par run.
 
 Aucun appui entre le START du matin et le STOP du soir.
 
@@ -42,11 +41,36 @@ vitesse max du run.
 
 | Réglage | Valeurs | Défaut |
 |---|---|---|
+| Enregistrement | Journée complète · Descentes seules | Journée complète |
 | Type de remontée | Télésiège/cabine · Téléski · Mixte | Télésiège |
 | Sensibilité détection | Basse (×1.5) · Normale (×1) · Haute (×0.7) | Normale |
 | Résumé de fin de descente | on/off | on |
 | Vibrations | on/off | on |
 | GPS | SatIQ · Multi-bande | SatIQ |
+
+## Enregistrement et synchro Strava
+
+Connect IQ ne sait pas mettre le chrono en pause tout en continuant d'écrire des
+points GPS : une session arrêtée n'enregistre **rien**. Il faut donc choisir, et
+c'est le réglage *Enregistrement* qui le porte.
+
+| | Journée complète (défaut) | Descentes seules |
+|---|---|---|
+| Trace GPS | continue | coupée pendant les remontées, sauts en ligne droite |
+| Dénivelé positif (Strava) | correct | inexploitable |
+| Temps d'activité du FIT | journée entière | temps de descente |
+| Temps de descente | via les laps et l'écran 2 | = temps d'activité |
+| Laps | alternance remontée / descente | un lap par descente |
+
+L'activité remonte sur Strava par la chaîne habituelle : la montre écrit le FIT
+dans `GARMIN/ACTIVITY/`, Garmin Connect Mobile le synchronise, puis Garmin
+Connect le pousse vers Strava si la synchro automatique Garmin↔Strava est
+autorisée. Le fait que l'app soit sideloadée ne change rien à cette chaîne.
+
+À savoir : **Strava ignore les champs développeur FIT.** Le nombre de descentes
+et le dénivelé négatif total s'affichent dans Garmin Connect (c'est le rôle de
+`resources/fitcontributions/`) mais pas sur Strava. Les laps, eux, passent bien
+et donnent un split par descente.
 
 ## Champs développeur FIT
 
@@ -100,10 +124,10 @@ Pour utiliser un SDK hors du chemin standard : `SDK_HOME=/chemin/vers/sdk ./buil
 
 ## Tests
 
-48 tests unitaires couvrent les scénarios de la spec §10.1 (descente franche,
+50 tests unitaires couvrent les scénarios de la spec §10.1 (descente franche,
 télésiège, téléski, replat, file d'attente, bruit baro, `speed == null`,
-`altitude == null`, hystérésis) ainsi que les accumulateurs et le wrapper
-`ActivityRecording`.
+`altitude == null`, reprise après perte baro, hystérésis), la reprise de distance
+GPS sans double comptage, les accumulateurs et le wrapper `ActivityRecording`.
 
 ```bash
 ./build.sh --test

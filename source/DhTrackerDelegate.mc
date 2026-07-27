@@ -50,6 +50,9 @@ class DhTrackerDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onMenu() as Boolean {
+        if (!$.getApp().armed) {
+            return true;
+        }
         showEndMenu();
         return true;
     }
@@ -80,11 +83,19 @@ class EndMenuDelegate extends WatchUi.Menu2InputDelegate {
         var app = $.getApp();
 
         if (id == :save) {
-            app.saveDay();
-            System.exit();
+            if (app.saveDay()) {
+                System.exit();
+            } else {
+                WatchUi.popView(WatchUi.SLIDE_DOWN);
+                WatchUi.requestUpdate();
+            }
         } else if (id == :discard) {
-            app.discardDay();
-            System.exit();
+            if (app.discardDay()) {
+                System.exit();
+            } else {
+                WatchUi.popView(WatchUi.SLIDE_DOWN);
+                WatchUi.requestUpdate();
+            }
         } else {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
         }

@@ -25,6 +25,7 @@ class RunStats {
     private var _hrCount as Number = 0;
     private var _lastTimeMs as Number;
     private var _lastCumulativeDistanceM as Float or Null = null;
+    private var _distanceStarted as Boolean = false;
 
     function initialize(runIndex as Number, timeMs as Number, altitudeM as Float) {
         index = runIndex;
@@ -57,11 +58,20 @@ class RunStats {
             var previous = _lastCumulativeDistanceM;
             if (previous != null && cumulativeDistanceM > previous) {
                 distanceM += cumulativeDistanceM - previous;
+            } else if (previous == null && _distanceStarted
+                       && speedMps != null && deltaMs > 0) {
+                // The cumulative channel has just recovered. Integrate only
+                // this interval; adding from the pre-outage baseline would
+                // count the outage distance a second time.
+                distanceM += speedMps * deltaMs / 1000.0;
             }
             _lastCumulativeDistanceM = cumulativeDistanceM;
         } else if (speedMps != null && deltaMs > 0) {
             distanceM += speedMps * deltaMs / 1000.0;
+            // Force the next cumulative value to establish a fresh baseline.
+            _lastCumulativeDistanceM = null;
         }
+        _distanceStarted = true;
 
         if (speedMps != null && speedMps > maxSpeedMps) {
             maxSpeedMps = speedMps;

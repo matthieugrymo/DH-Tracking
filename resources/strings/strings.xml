@@ -6,8 +6,12 @@
 
     <!-- Bandeaux d'état -->
     <string id="StateDescent">DESCENTE N°</string>
-    <string id="StateLift">REMONTÉE — pause</string>
-    <string id="StateIdle">ARRÊT — pause</string>
+    <!-- « pause » n'est affiché qu'en mode « descentes seules », où le
+         chrono s'arrête réellement pendant la remontée. -->
+    <string id="StateLift">REMONTÉE</string>
+    <string id="StateLiftPaused">REMONTÉE — pause</string>
+    <string id="StateIdle">ARRÊT</string>
+    <string id="StateIdlePaused">ARRÊT — pause</string>
     <string id="StateReady">PRÊT — START</string>
     <string id="ScreenDay">JOURNÉE</string>
 
@@ -29,6 +33,22 @@
     <string id="MenuResume">Reprendre</string>
     <string id="MenuDiscard">Supprimer</string>
 
+    <!-- Erreurs d'enregistrement -->
+    <string id="ErrorStart">SESSION IMPOSSIBLE</string>
+    <string id="ErrorRecording">ENREG. INTERROMPU</string>
+    <string id="ErrorLap">LAP NON CRÉÉ</string>
+    <string id="ErrorSave">ÉCHEC ENREGISTRER</string>
+    <string id="ErrorDiscard">ÉCHEC SUPPRESSION</string>
+
+    <!-- Champs développeur FIT -->
+    <string id="FitRunCountLabel">Descentes</string>
+    <string id="FitTotalDropLabel">Dénivelé total</string>
+    <string id="FitRunDropLabel">Dénivelé descente</string>
+    <string id="FitLiftTimeLabel">Temps de remontée</string>
+    <string id="FitRunsUnit">descentes</string>
+    <string id="FitMetersUnit">m</string>
+    <string id="FitSecondsUnit">s</string>
+
     <!-- Réglages (Garmin Connect Mobile) -->
     <string id="SettingLiftType">Type de remontée</string>
     <string id="SettingLiftTypePrompt">Discriminant accéléromètre pour la détection de remontée</string>
@@ -47,6 +67,11 @@
 
     <string id="SettingVibration">Vibrations</string>
     <string id="SettingVibrationPrompt">1 pulse au départ de descente, 2 en pause</string>
+
+    <string id="SettingRecording">Enregistrement</string>
+    <string id="SettingRecordingPrompt">Journée complète : trace GPS continue et dénivelé correct dans Garmin Connect et Strava, mais le temps d'activité inclut les remontées. Descentes seules : temps d'activité = temps de descente, mais la trace GPS est coupée pendant les remontées.</string>
+    <string id="RecordingFullDay">Journée complète</string>
+    <string id="RecordingDescentOnly">Descentes seules</string>
 
     <string id="SettingGps">GPS</string>
     <string id="SettingGpsPrompt">SatIQ (autonomie) ou multi-bande (précision)</string>

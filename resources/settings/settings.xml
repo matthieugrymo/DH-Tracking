@@ -15,6 +15,8 @@
         <property id="vibration" type="boolean">true</property>
         <!-- 0 = SatIQ, 1 = multi-bande -->
         <property id="gpsMode" type="number">0</property>
+        <!-- 0 = journée complète (trace GPS continue), 1 = descentes seules -->
+        <property id="recordingMode" type="number">0</property>
     </properties>
 
     <settings>
@@ -48,6 +50,15 @@
                  title="@Strings.SettingVibration"
                  prompt="@Strings.SettingVibrationPrompt">
             <settingConfig type="boolean"/>
+        </setting>
+
+        <setting propertyKey="@Properties.recordingMode"
+                 title="@Strings.SettingRecording"
+                 prompt="@Strings.SettingRecordingPrompt">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.RecordingFullDay</listEntry>
+                <listEntry value="1">@Strings.RecordingDescentOnly</listEntry>
+            </settingConfig>
         </setting>
 
         <setting propertyKey="@Properties.gpsMode"

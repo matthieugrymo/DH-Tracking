@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Metadata required for the fields created in SessionManager to be rendered
+     in Garmin Connect. IDs must remain synchronized with FIELD_* constants. -->
+<fitContributions>
+    <fitField id="0"
+              displayInActivitySummary="true"
+              sortOrder="0"
+              precision="0"
+              dataLabel="@Strings.FitRunCountLabel"
+              unitLabel="@Strings.FitRunsUnit"/>
+    <fitField id="1"
+              displayInActivitySummary="true"
+              sortOrder="1"
+              precision="1"
+              dataLabel="@Strings.FitTotalDropLabel"
+              unitLabel="@Strings.FitMetersUnit"/>
+    <fitField id="2"
+              displayInActivityLaps="true"
+              sortOrder="2"
+              precision="1"
+              dataLabel="@Strings.FitRunDropLabel"
+              unitLabel="@Strings.FitMetersUnit"/>
+    <fitField id="3"
+              displayInActivitySummary="true"
+              sortOrder="3"
+              precision="0"
+              dataLabel="@Strings.FitLiftTimeLabel"
+              unitLabel="@Strings.FitSecondsUnit"/>
+</fitContributions>

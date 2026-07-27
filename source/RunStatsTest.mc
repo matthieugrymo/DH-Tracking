@@ -133,6 +133,20 @@ function testDistanceFallsBackToSpeedIntegration(logger as Logger) as Boolean {
     return TestSupport.nearlyEqual(run.distanceM, 80.0, 0.01);
 }
 
+//! Quand la distance cumulée revient après une valeur nulle, le segment déjà
+//! intégré par la vitesse ne doit pas être ajouté une deuxième fois.
+(:test)
+function testDistanceRecoveryDoesNotDoubleCount(logger as Logger) as Boolean {
+    var run = new RunStats(1, 0, 1000.0);
+    run.update(999.0, 10.0, 100.0, null, 1000); // baseline
+    run.update(998.0, 10.0, null, null, 2000);  // +10 m integrated
+    run.update(997.0, 10.0, 120.0, null, 3000); // +10 m, fresh baseline
+    run.close(3000);
+
+    logger.debug("dist=" + run.distanceM);
+    return TestSupport.nearlyEqual(run.distanceM, 20.0, 0.01);
+}
+
 //! Une distance cumulée qui régresse (recalage GPS) ne doit pas soustraire.
 (:test)
 function testCumulativeDistanceNeverDecreases(logger as Logger) as Boolean {

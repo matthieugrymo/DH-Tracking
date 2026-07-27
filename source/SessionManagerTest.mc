@@ -71,13 +71,53 @@ function testSessionManagerDiscard(logger as Logger) as Boolean {
 function testSessionManagerIsSafeBeforeOpen(logger as Logger) as Boolean {
     var manager = new SessionManager();
 
-    manager.startTimer();
-    manager.stopTimer();
-    manager.addLap();
+    var startFailed = !manager.startTimer();
+    var stopFailed = !manager.stopTimer();
+    var lapFailed = !manager.addLap();
     manager.setRunDrop(10.0);
     manager.setSessionTotals(0, 0.0, 0);
 
     logger.debug("open=" + manager.isOpen() + " recording=" + manager.isRecording());
-    return !manager.isOpen() && !manager.isRecording()
+    return startFailed && stopFailed && lapFailed
+           && !manager.isOpen() && !manager.isRecording()
            && !manager.save() && !manager.discard();
+}
+
+//! Mode « journée complète » : l'enregistrement ne s'arrête jamais entre les
+//! descentes, ce qui est la condition d'une trace GPS continue. Les laps
+//! délimitent quand même les runs.
+(:test)
+function testSessionStaysRecordingAcrossLaps(logger as Logger) as Boolean {
+    var manager = new SessionManager();
+    manager.open();
+    manager.startTimer();
+
+    var recordingThroughout = true;
+    for (var run = 1; run <= 3; run++) {
+        // Close the lift lap (drop zeroed so it does not inherit the last run).
+        manager.setRunDrop(0.0);
+        manager.addLap();
+        recordingThroughout = recordingThroughout && manager.isRecording();
+
+        // Close the descent lap with its real drop.
+        manager.setRunDrop(200.0 + run);
+        manager.addLap();
+        recordingThroughout = recordingThroughout && manager.isRecording();
+    }
+    manager.setSessionTotals(3, 603.0, 900);
+    var saved = manager.save();
+
+    logger.debug("recordingThroughout=" + recordingThroughout + " saved=" + saved);
+    return recordingThroughout && saved && !manager.isOpen();
+}
+
+//! Le réglage par défaut est « journée complète » : trace GPS continue et
+//! dénivelé correct dans Garmin Connect et Strava.
+(:test)
+function testRecordingModeDefaultsToFullDay(logger as Logger) as Boolean {
+    var mode = Config.recordingMode();
+    var pause = Config.pauseOnLift();
+
+    logger.debug("mode=" + mode + " pauseOnLift=" + pause);
+    return mode == Config.RECORDING_FULL_DAY && !pause;
 }

@@ -110,7 +110,12 @@ class DhTrackerView extends WatchUi.View {
         var foreground = Graphics.COLOR_LT_GRAY;
         var text;
 
-        if (!app.armed) {
+        var error = app.lastError;
+        if (error != null) {
+            background = Graphics.COLOR_RED;
+            foreground = Graphics.COLOR_WHITE;
+            text = error;
+        } else if (!app.armed) {
             text = WatchUi.loadResource($.Rez.Strings.StateReady) as String;
         } else if (state == Config.STATE_DESCENT) {
             background = Graphics.COLOR_WHITE;
@@ -119,9 +124,14 @@ class DhTrackerView extends WatchUi.View {
             var number = stats == null ? 0 : stats.runCount;
             text = (WatchUi.loadResource($.Rez.Strings.StateDescent) as String) + number;
         } else if (state == Config.STATE_LIFT) {
-            text = WatchUi.loadResource($.Rez.Strings.StateLift) as String;
+            // Only say "pause" when the timer really is stopped.
+            text = WatchUi.loadResource(app.pauseOnLift
+                ? $.Rez.Strings.StateLiftPaused
+                : $.Rez.Strings.StateLift) as String;
         } else {
-            text = WatchUi.loadResource($.Rez.Strings.StateIdle) as String;
+            text = WatchUi.loadResource(app.pauseOnLift
+                ? $.Rez.Strings.StateIdlePaused
+                : $.Rez.Strings.StateIdle) as String;
         }
 
         dc.setColor(background, background);
@@ -151,6 +161,10 @@ class DhTrackerView extends WatchUi.View {
 
         var runs = stats == null ? 0 : stats.runCount;
         var drop = stats == null ? 0.0 : stats.totalDropM;
+        var runInProgress = stats == null ? null : stats.currentRun;
+        if (runInProgress != null) {
+            drop += runInProgress.dropM();
+        }
         var descentMs = stats == null ? 0 : stats.descentMs();
         var maxSpeed = stats == null ? 0.0 : stats.maxSpeedMps;
 

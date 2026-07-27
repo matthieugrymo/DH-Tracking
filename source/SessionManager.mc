@@ -41,24 +41,37 @@ class SessionManager {
             _finished = false;
             return true;
         } catch (ex) {
-            _session = null;
+            // A field allocation can fail after the Session itself was created.
+            // Close that partial session so a later START can retry cleanly.
+            var partial = _session;
+            if (partial != null) {
+                try {
+                    partial.discard();
+                } catch (discardEx) {
+                    // The caller still receives false and keeps the UI unarmed.
+                }
+            }
+            _release();
             return false;
         }
     }
 
     private function _createFields(session as ActivityRecording.Session) as Void {
+        var runsUnit = WatchUi.loadResource($.Rez.Strings.FitRunsUnit) as String;
+        var metersUnit = WatchUi.loadResource($.Rez.Strings.FitMetersUnit) as String;
+        var secondsUnit = WatchUi.loadResource($.Rez.Strings.FitSecondsUnit) as String;
         _runCountField = session.createField(
             "run_count", FIELD_RUN_COUNT, FitContributor.DATA_TYPE_UINT16,
-            {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "runs"});
+            {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => runsUnit});
         _totalDropField = session.createField(
             "total_vertical_drop", FIELD_TOTAL_DROP, FitContributor.DATA_TYPE_FLOAT,
-            {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "m"});
+            {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => metersUnit});
         _runDropField = session.createField(
             "run_vertical_drop", FIELD_RUN_DROP, FitContributor.DATA_TYPE_FLOAT,
-            {:mesgType => FitContributor.MESG_TYPE_LAP, :units => "m"});
+            {:mesgType => FitContributor.MESG_TYPE_LAP, :units => metersUnit});
         _liftTimeField = session.createField(
             "lift_time", FIELD_LIFT_TIME, FitContributor.DATA_TYPE_UINT32,
-            {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "s"});
+            {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => secondsUnit});
     }
 
     function isOpen() as Boolean {
@@ -71,28 +84,49 @@ class SessionManager {
     }
 
     //! Resume the timer — called on every entry into DESCENT (spec §8).
-    function startTimer() as Void {
+    function startTimer() as Boolean {
         var session = _session;
-        if (session != null && !session.isRecording()) {
-            session.start();
+        if (session == null) {
+            return false;
+        }
+        if (session.isRecording()) {
+            return true;
+        }
+        try {
+            return session.start();
+        } catch (ex) {
+            return false;
         }
     }
 
     //! Pause the timer — called on every exit from DESCENT. Does not close the
     //! session (spec §8).
-    function stopTimer() as Void {
+    function stopTimer() as Boolean {
         var session = _session;
-        if (session != null && session.isRecording()) {
-            session.stop();
+        if (session == null) {
+            return false;
+        }
+        if (!session.isRecording()) {
+            return true;
+        }
+        try {
+            return session.stop();
+        } catch (ex) {
+            return false;
         }
     }
 
     //! One lap per run, exactly like the alpine ski profile (spec §8).
     //! `setRunDrop` must be called first so the value lands on this lap.
-    function addLap() as Void {
+    function addLap() as Boolean {
         var session = _session;
-        if (session != null) {
-            session.addLap();
+        if (session == null || !session.isRecording()) {
+            return false;
+        }
+        try {
+            return session.addLap();
+        } catch (ex) {
+            return false;
         }
     }
 
@@ -127,12 +161,19 @@ class SessionManager {
         if (session == null || _finished) {
             return false;
         }
-        if (session.isRecording()) {
-            session.stop();
+        if (session.isRecording() && !stopTimer()) {
+            return false;
         }
-        var saved = session.save();
-        _finished = true;
-        _release();
+        var saved = false;
+        try {
+            saved = session.save();
+        } catch (ex) {
+            return false;
+        }
+        if (saved) {
+            _finished = true;
+            _release();
+        }
         return saved;
     }
 
@@ -141,12 +182,19 @@ class SessionManager {
         if (session == null || _finished) {
             return false;
         }
-        if (session.isRecording()) {
-            session.stop();
+        if (session.isRecording() && !stopTimer()) {
+            return false;
         }
-        var discarded = session.discard();
-        _finished = true;
-        _release();
+        var discarded = false;
+        try {
+            discarded = session.discard();
+        } catch (ex) {
+            return false;
+        }
+        if (discarded) {
+            _finished = true;
+            _release();
+        }
         return discarded;
     }
 

@@ -24,10 +24,19 @@ class DhTrackerApp extends Application.AppBase {
     public var armed as Boolean = false;
     //! True once the day has been saved or discarded.
     public var finished as Boolean = false;
+    //! Short localized error shown in the status band. Recording errors must be
+    //! visible because silently losing a day is worse than stopping the workflow.
+    public var lastError as String or Null = null;
 
     //! Latest sampled values, exposed for the view.
     public var currentSpeedMps as Float or Null = null;
     public var gpsQuality as Number or Null = null;
+
+    //! Whether the recording pauses during lifts. Latched at `startDay` from
+    //! `Config.pauseOnLift()` and then held for the whole day: flipping the mode
+    //! mid-session would leave the session half-paused and make the recorded
+    //! activity time impossible to interpret.
+    public var pauseOnLift as Boolean = false;
 
     private var _thresholds as Config.Thresholds;
     private var _timer as Timer.Timer or Null = null;
@@ -37,6 +46,19 @@ class DhTrackerApp extends Application.AppBase {
     private var _accelUpdatedMs as Number or Null = null;
     private var _accelRegistered as Boolean = false;
     private var _positionEnabled as Boolean = false;
+    private var _sensorEventsEnabled as Boolean = false;
+
+    private var _positionAltitude as Float or Null = null;
+    private var _positionSpeed as Float or Null = null;
+    private var _positionHeading as Float or Null = null;
+    private var _positionQuality as Number or Null = null;
+    private var _positionUpdatedMs as Number or Null = null;
+
+    private var _sensorAltitude as Float or Null = null;
+    private var _sensorSpeed as Float or Null = null;
+    private var _sensorHeading as Float or Null = null;
+    private var _sensorHeartRate as Number or Null = null;
+    private var _sensorUpdatedMs as Number or Null = null;
 
     private var _lastTickMs as Number or Null = null;
 
@@ -64,12 +86,12 @@ class DhTrackerApp extends Application.AppBase {
             timer.stop();
             _timer = null;
         }
-        _stopSensors();
         // The app is going away with a day in progress: save rather than lose
         // it. `save()` is a no-op once the user has already saved or discarded.
         if (armed && !finished) {
             saveDay();
         }
+        _stopSensors();
     }
 
     //! Re-read the settings when they are changed from Garmin Connect Mobile.
@@ -80,6 +102,10 @@ class DhTrackerApp extends Application.AppBase {
         if (detectorRef != null) {
             detectorRef.setThresholds(_thresholds);
         }
+        // The recording mode is deliberately not applied mid-day — see the field.
+        if (!armed) {
+            pauseOnLift = Config.pauseOnLift();
+        }
     }
 
     // ------------------------------------------------------------------
@@ -87,35 +113,82 @@ class DhTrackerApp extends Application.AppBase {
     // ------------------------------------------------------------------
 
     //! First START press (spec §6): open the recording session and start
-    //! sampling. The activity timer itself only starts on the first DESCENT.
-    function startDay() as Void {
+    //! sampling.
+    //!
+    //! In full-day mode the timer starts here, so the GPS track is continuous
+    //! from the first press. In descent-only mode it stays stopped until the
+    //! first DESCENT.
+    function startDay() as Boolean {
         if (armed) {
-            return;
+            return true;
         }
+        lastError = null;
+        if (!sessionManager.open()) {
+            lastError = WatchUi.loadResource($.Rez.Strings.ErrorStart) as String;
+            WatchUi.requestUpdate();
+            return false;
+        }
+
         var now = System.getTimer();
         stats = new SessionStats(now);
         detector = new LiftDetector(_thresholds, method(:onRunStart), method(:onRunEnd));
         _lastTickMs = now;
         armed = true;
         finished = false;
+        pauseOnLift = Config.pauseOnLift();
 
-        sessionManager.open();
+        sessionManager.setSessionTotals(0, 0.0, 0);
+        if (!pauseOnLift) {
+            _ensureRecording();
+        }
         _startSensors();
+        return true;
     }
 
     function saveDay() as Boolean {
+        if (!armed || finished) {
+            return false;
+        }
+        var now = System.getTimer();
+        _accountStateTime(now);
+
+        // Saving is a valid way to end a run. Drive the normal detector callback
+        // so the current run is folded into totals and its lap field is written.
+        var detectorRef = detector;
+        if (detectorRef != null && detectorRef.state == Config.STATE_DESCENT) {
+            detectorRef.forceState(Config.STATE_IDLE, now);
+        } else {
+            var statsRef = stats;
+            if (statsRef != null && statsRef.currentRun != null) {
+                onRunEnd(now);
+            }
+        }
+
+        _writeSessionTotals();
         var saved = sessionManager.save();
-        finished = true;
-        armed = false;
-        _stopSensors();
+        if (saved) {
+            finished = true;
+            armed = false;
+            lastError = null;
+            _stopSensors();
+        } else {
+            lastError = WatchUi.loadResource($.Rez.Strings.ErrorSave) as String;
+            WatchUi.requestUpdate();
+        }
         return saved;
     }
 
     function discardDay() as Boolean {
         var discarded = sessionManager.discard();
-        finished = true;
-        armed = false;
-        _stopSensors();
+        if (discarded) {
+            finished = true;
+            armed = false;
+            lastError = null;
+            _stopSensors();
+        } else {
+            lastError = WatchUi.loadResource($.Rez.Strings.ErrorDiscard) as String;
+            WatchUi.requestUpdate();
+        }
         return discarded;
     }
 
@@ -126,6 +199,7 @@ class DhTrackerApp extends Application.AppBase {
         if (detectorRef == null) {
             return;
         }
+        lastError = null;
         var now = System.getTimer();
         if (detectorRef.state == Config.STATE_DESCENT) {
             detectorRef.forceState(Config.STATE_LIFT, now);
@@ -149,32 +223,59 @@ class DhTrackerApp extends Application.AppBase {
         var heading = null;
         var distance = null;
         var heartRate = null;
+        var locationQuality = null;
         if (info != null) {
             altitude = info.altitude;
             speed = info.currentSpeed;
             heading = info.currentHeading;
             distance = info.elapsedDistance;
             heartRate = info.currentHeartRate;
-            gpsQuality = info.currentLocationAccuracy;
+            locationQuality = info.currentLocationAccuracy;
+        }
+
+        if (altitude == null && _sensorFresh(now)) {
+            altitude = _sensorAltitude;
+        }
+        if (altitude == null && _positionFresh(now)) {
+            altitude = _positionAltitude;
+        }
+        if (speed == null && _positionFresh(now)) {
+            speed = _positionSpeed;
+        }
+        if (speed == null && _sensorFresh(now)) {
+            speed = _sensorSpeed;
+        }
+        if (heading == null && _positionFresh(now)) {
+            heading = _positionHeading;
+        }
+        if (heading == null && _sensorFresh(now)) {
+            heading = _sensorHeading;
+        }
+        if (heartRate == null && _sensorFresh(now)) {
+            heartRate = _sensorHeartRate;
+        }
+        if (locationQuality == null && _positionFresh(now)) {
+            locationQuality = _positionQuality;
         }
         currentSpeedMps = speed;
+        gpsQuality = locationQuality;
 
         var detectorRef = detector;
         var statsRef = stats;
         if (armed && detectorRef != null && statsRef != null) {
-            var previousState = detectorRef.state;
-
-            var last = _lastTickMs;
-            if (last != null) {
-                statsRef.addStateTime(previousState, now - last);
-            }
-            _lastTickMs = now;
+            _accountStateTime(now);
 
             detectorRef.update(altitude, speed, heading, _freshAccelVariance(now), now);
 
             if (detectorRef.state == Config.STATE_DESCENT) {
                 statsRef.updateRun(detectorRef.altitude(), speed, distance, heartRate, now);
+                var currentRun = statsRef.currentRun;
+                if (currentRun != null) {
+                    sessionManager.setRunDrop(currentRun.dropM());
+                }
+                _ensureRecording();
             }
+            _writeSessionTotals();
         }
 
         WatchUi.requestUpdate();
@@ -189,6 +290,41 @@ class DhTrackerApp extends Application.AppBase {
             return null;
         }
         return _accelVarianceMg;
+    }
+
+    private function _positionFresh(nowMs as Number) as Boolean {
+        var updated = _positionUpdatedMs;
+        return updated != null && nowMs - updated <= Config.ACCEL_STALE_MS;
+    }
+
+    private function _sensorFresh(nowMs as Number) as Boolean {
+        var updated = _sensorUpdatedMs;
+        return updated != null && nowMs - updated <= Config.ACCEL_STALE_MS;
+    }
+
+    private function _accountStateTime(nowMs as Number) as Void {
+        var last = _lastTickMs;
+        var statsRef = stats;
+        var detectorRef = detector;
+        if (last != null && statsRef != null && detectorRef != null) {
+            statsRef.addStateTime(detectorRef.state, nowMs - last);
+        }
+        _lastTickMs = nowMs;
+    }
+
+    private function _ensureRecording() as Boolean {
+        if (sessionManager.isRecording()) {
+            return true;
+        }
+        if (sessionManager.startTimer()) {
+            // High-frequency and native sensor access can be limited while the
+            // timer is stopped, so retry any listener that failed during IDLE.
+            _startSensors();
+            lastError = null;
+            return true;
+        }
+        lastError = WatchUi.loadResource($.Rez.Strings.ErrorRecording) as String;
+        return false;
     }
 
     //! 25 Hz accelerometer callback: reduce one second of samples to the
@@ -230,13 +366,39 @@ class DhTrackerApp extends Application.AppBase {
         _accelUpdatedMs = System.getTimer();
     }
 
+    //! Low-frequency native sensor stream. This remains useful while the
+    //! Activity.Info fields are null before the first recording timer start.
+    function onSensor(info as Sensor.Info) as Void {
+        _sensorAltitude = info.altitude;
+        _sensorSpeed = info.speed;
+        _sensorHeading = info.heading;
+        _sensorHeartRate = info.heartRate;
+        _sensorUpdatedMs = System.getTimer();
+    }
+
     private function _startSensors() as Void {
+        if (!_sensorEventsEnabled) {
+            try {
+                Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE]);
+                Sensor.enableSensorEvents(method(:onSensor));
+                _sensorEventsEnabled = true;
+            } catch (sensorEx) {
+                _sensorEventsEnabled = false;
+            }
+        }
+
         if (!_positionEnabled) {
             try {
-                Position.enableLocationEvents({
-                    :acquisitionType => Position.LOCATION_CONTINUOUS,
-                    :configuration => _gnssConfiguration()
-                }, method(:onPosition));
+                var configuration = _gnssConfiguration();
+                if (configuration == null) {
+                    Position.enableLocationEvents(Position.LOCATION_CONTINUOUS,
+                                                  method(:onPosition));
+                } else {
+                    Position.enableLocationEvents({
+                        :acquisitionType => Position.LOCATION_CONTINUOUS,
+                        :configuration => configuration
+                    }, method(:onPosition));
+                }
                 _positionEnabled = true;
             } catch (ex) {
                 // Older firmware rejects :configuration — retry without it.
@@ -277,6 +439,15 @@ class DhTrackerApp extends Application.AppBase {
             }
             _accelRegistered = false;
         }
+        if (_sensorEventsEnabled) {
+            try {
+                Sensor.enableSensorEvents(null);
+                Sensor.setEnabledSensors([]);
+            } catch (sensorEx) {
+                // The app is stopping; no recovery action is useful here.
+            }
+            _sensorEventsEnabled = false;
+        }
         if (_positionEnabled) {
             try {
                 Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
@@ -285,18 +456,29 @@ class DhTrackerApp extends Application.AppBase {
             }
             _positionEnabled = false;
         }
+        _accelVarianceMg = null;
+        _accelUpdatedMs = null;
+        _positionUpdatedMs = null;
+        _sensorUpdatedMs = null;
     }
 
-    private function _gnssConfiguration() as Position.Configuration {
+    private function _gnssConfiguration() as Position.Configuration or Null {
+        var requested = Position.CONFIGURATION_SAT_IQ;
         if (Config.gpsMode() == Config.GPS_MULTI_BAND) {
-            return Position.CONFIGURATION_GPS_GLONASS_GALILEO_BEIDOU_L1_L5;
+            requested = Position.CONFIGURATION_GPS_GLONASS_GALILEO_BEIDOU_L1_L5;
         }
-        return Position.CONFIGURATION_SAT_IQ;
+        if (!Position.hasConfigurationSupport(requested)) {
+            return null;
+        }
+        return requested;
     }
 
-    //! Position fixes are consumed through `Activity.getActivityInfo()` in
-    //! `onTick`; this callback only exists because the API requires one.
     function onPosition(info as Position.Info) as Void {
+        _positionAltitude = info.altitude;
+        _positionSpeed = info.speed;
+        _positionHeading = info.heading;
+        _positionQuality = info.accuracy;
+        _positionUpdatedMs = System.getTimer();
     }
 
     // ------------------------------------------------------------------
@@ -310,6 +492,18 @@ class DhTrackerApp extends Application.AppBase {
         if (statsRef == null || detectorRef == null) {
             return;
         }
+        // In full-day mode the recording never stopped, so the lift and the
+        // queue before it are still part of the open lap. Close that lap here so
+        // laps alternate lift / descent and each descent gets its own split in
+        // Garmin Connect and on Strava. The lap developer field is zeroed first,
+        // otherwise this lap would inherit the previous run's drop.
+        if (!pauseOnLift && statsRef.runCount > 0) {
+            sessionManager.setRunDrop(0.0);
+            if (!sessionManager.addLap()) {
+                lastError = WatchUi.loadResource($.Rez.Strings.ErrorLap) as String;
+            }
+        }
+
         // Look back over the detection window: by the time 8 m have been lost
         // the rider is already well past the top of the run.
         var topAltitude = detectorRef.altitudeBefore(Config.DESCENT_WINDOW_SEC);
@@ -317,7 +511,7 @@ class DhTrackerApp extends Application.AppBase {
             topAltitude = detectorRef.altitude();
         }
         statsRef.startRun(timeMs, topAltitude);
-        sessionManager.startTimer();
+        _ensureRecording();
         _vibrate(1);
     }
 
@@ -332,16 +526,34 @@ class DhTrackerApp extends Application.AppBase {
         var run = statsRef.endRun(timeMs);
         if (run != null) {
             sessionManager.setRunDrop(run.dropM());
-            sessionManager.addLap();
-            sessionManager.setSessionTotals(statsRef.runCount, statsRef.totalDropM,
-                                            statsRef.liftMs / 1000);
+            if (!sessionManager.addLap()) {
+                lastError = WatchUi.loadResource($.Rez.Strings.ErrorLap) as String;
+            }
+            _writeSessionTotals();
             var view = _view;
             if (view != null && Config.runSummaryEnabled()) {
                 view.showRunSummary(run, System.getTimer());
             }
         }
-        sessionManager.stopTimer();
+        // Only descent-only mode pauses. In full-day mode the recording keeps
+        // running so the GPS track stays continuous over the lift.
+        if (pauseOnLift && !sessionManager.stopTimer()) {
+            lastError = WatchUi.loadResource($.Rez.Strings.ErrorRecording) as String;
+        }
         _vibrate(2);
+    }
+
+    private function _writeSessionTotals() as Void {
+        var statsRef = stats;
+        if (statsRef == null) {
+            return;
+        }
+        var drop = statsRef.totalDropM;
+        var run = statsRef.currentRun;
+        if (run != null) {
+            drop += run.dropM();
+        }
+        sessionManager.setSessionTotals(statsRef.runCount, drop, statsRef.liftMs / 1000);
     }
 
     //! Spec §5: 1 pulse on run start, 2 pulses on pause.
