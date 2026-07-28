@@ -65,14 +65,21 @@ point. Trois choses n'en font donc qu'une seule, indissociables :
 | Trace GPS | descentes reliées en ligne droite | continue |
 | Laps | un lap par descente | alternance remontée / descente |
 
-Le défaut reproduit le profil **Ski alpin** : c'est le comportement voulu pour ne
-pas polluer le dénivelé positif VTT. Le raccord en ligne droite entre le bas d'une
-descente et le haut de la suivante suit à peu près le tracé de la remontée, un
-câble étant rectiligne entre pylônes.
+Le défaut **est** le profil Ski alpin, transposé au VTT — pas un compromis par
+rapport à lui. Le profil natif de Garmin ne fait pas autre chose : son chrono se
+met en pause dès qu'on cesse de descendre, reste en pause pendant toute la
+remontée, et la carte relie le point le plus bas d'une descente au haut de la
+suivante par **une ligne droite** ; elle ne suit pas le tracé du télésiège. Le
+manuel Garmin le dit dans ces termes (« Viewing Your Ski Runs » / « Going
+Downhill Skiing or Snowboarding »), et c'est exactement ce que produit
+« Descentes seules ». Le raccord reste d'ailleurs proche du tracé réel : un
+câble est rectiligne entre pylônes.
 
-Le profil Ski alpin natif de Garmin, lui, garde la trace *et* exclut les
-remontées — parce qu'il ne passe pas par cette API. Ce n'est pas reproductible
-depuis une app Connect IQ.
+La seule différence résiduelle avec le natif est la **latence de détection** :
+le firmware bascule plus tôt qu'une boucle Connect IQ à 1 Hz. Ici ~9 s de
+remontée entrent dans le D+ à chaque descente (~18 m, ~200 m sur douze runs ;
+voir `tasks/todo.md`). Le natif n'en est pas exempt non plus — plusieurs modèles
+ont été signalés sur les forums Garmin comme comptant le D+ du télésiège.
 
 La synchro passe par la chaîne habituelle : la montre écrit le FIT dans
 `GARMIN/ACTIVITY/`, Garmin Connect Mobile le synchronise, puis Garmin Connect le

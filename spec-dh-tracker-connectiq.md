@@ -6,9 +6,13 @@ Développer une **Device App Connect IQ** pour Garmin **Fenix 7 / 7S / 7X** (sé
 
 **Révisé.** Le comportement par défaut reproduit le **modèle ski** : le chrono et le dénivelé positif excluent les remontées. C'est le point important — compter le D+ des remontées polluerait le cumul de dénivelé VTT, exactement ce que le profil Ski alpin évite.
 
-Connect IQ n'offre qu'un seul levier : le chrono tourne, ou pas. `Activity.Info.totalAscent` est en lecture seule et une `Session` n'expose que start/stop/addLap/save/discard. La montre accumule le temps **et** le dénivelé exactement pendant que le chrono tourne, et une session arrêtée n'écrit aucun point. Trois conséquences n'en font donc qu'une : temps d'activité hors remontées, D+ hors remontées, et trou dans la trace GPS. Elles sont indissociables — le profil Ski alpin natif y arrive parce qu'il ne passe pas par cette API.
+Ce défaut n'est pas une approximation du profil natif, c'en est le comportement exact. Le profil Ski alpin de Garmin met son chrono en pause dès que la descente cesse, le laisse en pause pendant toute la remontée, et sa trace relie le bas d'une descente au haut de la suivante par une ligne droite — il ne suit pas le câble (manuels Garmin « Viewing Your Ski Runs » et « Going Downhill Skiing or Snowboarding »). Une app Connect IQ peut donc le cloner tel quel, et c'est ce que fait `RECORDING_DESCENT_ONLY`.
 
-La trace montre donc chaque descente reliée par une ligne droite. Comme un câble est rectiligne entre pylônes (§4.1), ce raccord suit à peu près le tracé de la remontée. Le réglage « Enregistrement › Journée complète » permet l'inverse : trace continue, mais D+ et temps d'activité incluant les remontées.
+Connect IQ n'offre qu'un seul levier : le chrono tourne, ou pas. `Activity.Info.totalAscent` est en lecture seule et une `Session` n'expose que start/stop/addLap/save/discard. La montre accumule le temps **et** le dénivelé exactement pendant que le chrono tourne, et une session arrêtée n'écrit aucun point. Trois conséquences n'en font donc qu'une : temps d'activité hors remontées, D+ hors remontées, et trou dans la trace GPS. Elles sont indissociables — mais c'est sans conséquence ici, puisque le modèle ski veut précisément les trois ensemble.
+
+La trace montre donc chaque descente reliée par une ligne droite, comme sur une activité Ski alpin. Comme un câble est rectiligne entre pylônes (§4.1), ce raccord suit à peu près le tracé de la remontée. Le réglage « Enregistrement › Journée complète » permet l'inverse : trace continue, mais D+ et temps d'activité incluant les remontées.
+
+Seul écart résiduel avec le natif : la **latence de détection** (§4.3), le firmware basculant plus tôt qu'une boucle à 1 Hz.
 
 Aucune interaction utilisateur entre le START du matin et le STOP du soir.
 

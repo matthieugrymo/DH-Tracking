@@ -18,8 +18,10 @@
         <!--
           0 = journée complète (trace GPS continue, mais le dénivelé positif des
               remontées est compté comme du D+ VTT)
-          1 = descentes seules (comportement ski : temps et D+ excluent les
-              remontées, au prix de trous dans la trace)
+          1 = descentes seules — le comportement du profil Ski alpin natif à
+              l'identique : temps et D+ excluent les remontées, et la trace
+              relie les descentes en ligne droite (le profil natif fait pareil,
+              il ne suit pas le câble)
         -->
         <property id="recordingMode" type="number">1</property>
     </properties>

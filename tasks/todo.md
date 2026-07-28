@@ -76,14 +76,16 @@ Source : [spec-dh-tracker-connectiq.md](../spec-dh-tracker-connectiq.md)
 
 ### Points d'attention pour le terrain
 
-- **Trace GPS pendant les remontées — tranché par l'utilisateur.** Connect IQ
-  n'offre qu'un levier : le chrono tourne ou pas. `Activity.Info.totalAscent` est
-  en lecture seule et une session n'expose que start/stop/addLap/save/discard, donc
-  temps d'activité hors remontées, D+ hors remontées et trou dans la trace sont une
-  seule et même bascule. L'utilisateur a arbitré sur le **D+** : compter le
-  dénivelé des remontées polluerait son cumul VTT. Défaut = « descentes seules »
-  (modèle ski) ; « journée complète » reste disponible pour qui préfère la trace.
-  Le profil Ski alpin natif fait les deux, mais il ne passe pas par cette API.
+- **Trace GPS pendant les remontées — non, ce n'est pas un compromis.** Le profil
+  Ski alpin natif ne garde pas la trace pendant la remontée : son chrono se met en
+  pause dès la fin de la descente et le reste toute la montée, et la carte relie le
+  bas d'une descente au haut de la suivante par une ligne droite (manuels Garmin
+  « Viewing Your Ski Runs » / « Going Downhill Skiing or Snowboarding »). Le défaut
+  « descentes seules » est donc le clone exact du comportement natif, pas une
+  approximation. Connect IQ n'offre qu'un levier — temps d'activité hors remontées,
+  D+ hors remontées et trou dans la trace sont une seule bascule — mais le modèle
+  ski veut les trois ensemble, donc le levier unique suffit. « Journée complète »
+  reste disponible pour qui préfère une trace continue au prix du D+.
 - **Latence de détection LIFT = du D+ parasite.** Chaque seconde avant la bascule
   LIFT est du dénivelé de remontée accumulé par la montre. La fenêtre large seule
   (10 m / 20 s / 80 % monotone) bascule à 17 s, soit ~34 m par descente — ~400 m

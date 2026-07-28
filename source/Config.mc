@@ -53,16 +53,24 @@ module Config {
     // *and* ascent precisely while the timer runs — and a stopped session writes
     // no records at all. Three consequences are therefore one and the same
     // switch: activity time excluding lifts, ascent excluding lifts, and a gap
-    // in the GPS track. They cannot be separated.
+    // in the GPS track. They cannot be separated — which turns out not to
+    // matter, because the ski model wants all three together.
     //
     //   RECORDING_DESCENT_ONLY (default) the session is stopped on every lift.
-    //                         This is the alpine ski model: activity time is
-    //                         descent time, and the lift climb never lands in
-    //                         the MTB ascent total. Cost: no GPS point is
-    //                         written during a lift, so the map shows each
-    //                         descent joined by a straight line. Since a cable
-    //                         runs straight between pylons (§4.1), that
-    //                         connector roughly traces the lift anyway.
+    //                         This *is* the alpine ski profile, not an
+    //                         approximation of it: Garmin's native profile
+    //                         pauses its timer as soon as the descent ends,
+    //                         keeps it paused for the whole lift, and draws a
+    //                         straight line from the bottom of one run to the
+    //                         top of the next rather than following the cable.
+    //                         So activity time is descent time, the lift climb
+    //                         never lands in the MTB ascent total, and the map
+    //                         looks like a ski activity's map. A cable runs
+    //                         straight between pylons (§4.1), so that connector
+    //                         roughly traces the lift anyway. The one residual
+    //                         gap versus the native profile is detection
+    //                         latency: firmware switches earlier than a 1 Hz
+    //                         Connect IQ loop can (see LIFT_FAST_WINDOW_SEC).
     //
     //   RECORDING_FULL_DAY    the session runs from START to STOP, so the GPS
     //                         track is continuous. Cost: every metre the lift
